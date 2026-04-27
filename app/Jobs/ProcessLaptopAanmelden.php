@@ -256,15 +256,17 @@ class ProcessLaptopAanmelden implements ShouldQueue, ShouldBeUnique
 
         // Stap 3: zoek fabrikant in SnipeIT en haal het id op.
         $manufacturer = $laptop['manufacturer'] ?? 'Onbekende fabrikant';
+        $manufacturer = ucfirst(strtolower($manufacturer)); // maak de fabrikantnaam consistent, met alleen de eerste letter in hoofdletter, om beter te kunnen matchen met bestaande fabrikanten in SnipeIT.
         $manufacturerId = $this->verwerkSnipeITPart('manufacturers', $manufacturer, 1, [
             'name' => $manufacturer,
             'notes' => 'Fabrikant aangemaakt door API'
         ]);
 
         // Stap 4: zoek Model productName in SnipeIT en haal het id op.
-        $productName = $laptop['productname'] ?? 'Onbekend model';
+        $productName = $laptop['productname'] ?? 'Onbekend';
         $modelId = $this->verwerkSnipeITPart('models', $productName, 1, [
-            'name' => $productName,
+            'name' => $manufacturer . ' ' . $productName,
+            'model_number' => $productName,
             'category_id' => $categoryId,
             'manufacturer_id' => $manufacturerId,
             'notes' => 'Model aangemaakt door API'
@@ -278,7 +280,8 @@ class ProcessLaptopAanmelden implements ShouldQueue, ShouldBeUnique
         ]);
 
         // Stap 6: zoek Location "plaats (naam)" in SnipeIT en haal het id op.
-        $locationName = strtolower($laptop['naam_plaats']) ?? 'naam_onbekend';
+        $locationName = $laptop['naam_plaats'] ?? 'naam_onbekend';
+        $locationName = strtolower($locationName);
         $locationName = str_replace('-', '_', $locationName); // vervang - door underscores
         $delen = explode('_', $locationName,2);
         if (count($delen) == 1) {
