@@ -9,7 +9,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\AanmeldingMail;
-use PhpParser\Node\Expr\Print_;
 
 class ProcessLaptopAanmelden implements ShouldQueue, ShouldBeUnique
 {
@@ -331,7 +330,6 @@ class ProcessLaptopAanmelden implements ShouldQueue, ShouldBeUnique
     }
 
     public function handle(): void {
-
         Log::info('LaptopAanmelden: job gestart '.date("Y-m-d H:i:s").'.');
         $laptops = $this->readNextCloud();
         Log::info('LaptopAanmelden: $laptops: ' . count($laptops));

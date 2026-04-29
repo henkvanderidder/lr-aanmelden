@@ -3,8 +3,10 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-//use Illuminate\Console\Scheduling\Schedule;
-//use App\Jobs\ProcessLaptopAanmelden;
+use Illuminate\Console\Scheduling\Schedule;
+use App\Jobs\TestJob;
+use App\Jobs\ProcessLaptopAanmelden;
+use Illuminate\Support\Facades\Log;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -19,11 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })
-    //->withSchedule(function (Schedule $schedule): void {
-    //    //
-    //    $schedule->call (function () {
-    //        //
-    //       ProcessLaptopAanmelden::dispatch();
-    //   })->everyMinute();
-    //})
+    /*
+    ->withSchedule(function (Schedule $schedule): void {
+        //
+        $schedule->call (function () {
+            //
+            Log::info('Schedule: job dispatched '.date("Y-m-d H:i:s").'.');
+            TestJob::dispatch();
+            ProcessLaptopAanmelden::dispatch();
+       })->everyFiveMinutes();
+    })
+       */
     ->create();
