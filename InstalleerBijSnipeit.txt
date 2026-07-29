@@ -1,0 +1,56 @@
+1 Controleer: Zet mail-settings en Api keys in .env bestand
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=smtp.strato.com
+MAIL_PORT=587
+MAIL_USERNAME="henk@ridder-putten.nl"
+MAIL_PASSWORD="HvdR2@26Strato"
+MAIL_FROM_ADDR="henk@ridder-putten.nl"
+MAIL_FROM_NAME="Laptop Aanmelden"
+MAIL_REPLYTO_ADDR="henk@ridder-putten.nl"
+MAIL_REPLYTO_NAME='Laptop Aanmelden'
+
+LR_NEXTCLOUD_URL="http://192.168.178.201"
+LR_NEXTCLOUD_USERNAME="henk"
+LR_NEXTCLOUD_PASSWORD="hvdr2000"
+
+SNIPEIT_URL="http://192.168.178.203"
+SNIPEIT_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiOGJhMDExMWE4NDUyMTQ0ZDE4MThmMmIxMjYxODI2OGNiZjlhMzJlMDc4NjU5N2RkY2QyNDE1YzU3NmMwMWVjNjQwZTZhMTY1YWVhODFiNTYiLCJpYXQiOjE3NzYzNTU3MTguOTU3NzU1LCJuYmYiOjE3NzYzNTU3MTguOTU3NzU3LCJleHAiOjIyNDk3NDEzMTguOTU0NzMsInN1YiI6IjEiLCJzY29wZXMiOltdfQ.VwZmNGn6M3flgevQARbRXGYYfQXNecIbQP1RfIKYnMa45BSE893vvmSVaC9c7GaV2fby2H0j3Sn91UHdOBzfo-akIvDhZzbtoyTNt3_Ib_ajnuUn2xWm1rN5gylAqs5Pd7fApnQttjo957EsXDTlpU2-jh1qzYq7yKbe-5xfL0FOZ4aluhIya9KfTGK2wQzUej52Z4CyZJDU8iW-_2y4XxfYSkUsETK6YngXAsqd1JZupbXhOK6wS-vVpratMbxl8YdczH1zOZ6aB41b6mku70o2Q8apTEuBS3WLwDIdVqLEdv5inu2YcC54u_EioqBYeu4VER60dXJbEysOkgOGsM5-qa6vviNqKGTnW5O3xAyyErY88L5Le4uy1xCDhDCVFsCbZ8WcswpnldY3GTGGOJ-Oc-PuqJxbS8HszWHGdUKFK8iSm-LKOSixNzpiBk0PKCQi-AS50M7hNAMr1EAu22vJjMoRoa9lsYgCMMbUv6O9VTOXqSxbazA5Ss1rNO0e_5uugep6RdzaSVFsptRW1ZcATjxWPxOxLvNZkOuhvu0Ff5Adg1SevDjwfUcqpIRBpjEd-D4eNG6_8II1wlmoduLJt_tW1iJVVvHIwCC5CFyx8k_FLrLYYhSr19eM0b3JZr3mBPLLTNFdvIFd7C7UqsVMgn8JX3c0NnMcFgwNiB0"
+
+2 Kopieer de volgende bestanden van lr-aanmelden naar snipe-it
+scp -o user=lrwebapps lrwebapps@192.168.178.207:/var/www/lr-aanmelden/app/Jobs/ProcessLaptopAanmelden.php /var/www/snipe-it/app/Jobs/ProcessLaptopAanmelden.php
+scp -o user=lrwebapps lrwebapps@192.168.178.207:/var/www/lr-aanmelden/app/Mail/AanmeldingMail.php /var/www/snipe-it/app/Mail/AanmeldingMail.php
+scp -o user=lrwebapps lrwebapps@192.168.178.207:/var/www/lr-aanmelden/resources/views/mail/aanmelding.blade.php /var/www/snipe-it/resources/views/mail/aanmelding.blade.php
+chown www-data:www-data /var/www/snipe-it/app/Jobs/ProcessLaptopAanmelden.php
+chown www-data:www-data /var/www/snipe-it/app/Mail/AanmeldingMail.php
+chown www-data:www-data /var/www/snipe-it/resources/views/mail/aanmelding.blade.php   
+
+3 voeg toe in routes\console_add.php
+use Illuminate\Support\Facades\Schedule;
+use App\Jobs\ProcessLaptopAanmelden;
+...
+Schedule::job(new ProcessLaptopAanmelden())->everyMinute();
+
+4 controleer Installatie supervisor
+sudo apt install supervisor
+
+5 controleer voeg toe aan /etc/supervisord/conf.d/queueworker.conf
+[program:queue-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/snipe-it/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/www/snipe-it/storage/logs/queueworker.log
+stopwaitsecs=3600
+
+6 controleer Supervisor configureren
+ supervisorctl reread
+ supervisorctl update
+ supervisorctl restart all
+
+7 Controleer inhoud in crontab
+* * * * * root  (cd /var/www/snipe-it && php artisan schedule:run) >>/var/www/snipe-it/storage/logs/cron.log 2>&1
