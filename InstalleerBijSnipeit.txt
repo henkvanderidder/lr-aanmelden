@@ -25,7 +25,7 @@ chown www-data:www-data /var/www/snipe-it/app/Jobs/ProcessLaptopAanmelden.php
 chown www-data:www-data /var/www/snipe-it/app/Mail/AanmeldingMail.php
 chown www-data:www-data /var/www/snipe-it/resources/views/mail/aanmelding.blade.php   
 
-3 voeg toe in routes\console_add.php
+3 voeg toe in routes\consolevi .php
 use Illuminate\Support\Facades\Schedule;
 use App\Jobs\ProcessLaptopAanmelden;
 ...
@@ -34,7 +34,7 @@ Schedule::job(new ProcessLaptopAanmelden())->everyMinute();
 4 controleer Installatie supervisor
 sudo apt install supervisor
 
-5 controleer voeg toe aan /etc/supervisord/conf.d/queueworker.conf
+5 controleer voeg toe aan /etc/supervisor/conf.d/queueworker.conf
 [program:queue-worker]
 process_name=%(program_name)s_%(process_num)02d
 command=php /var/www/snipe-it/artisan queue:work --sleep=3 --tries=3 --max-time=3600
