@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2af3ccbaaf28845c404c1bd165e5a386",
+    "content-hash": "6fadc6141743fd724ae33666fb018fca",
     "packages": [
         {
             "name": "brick/math",
@@ -1054,6 +1054,54 @@
             "time": "2025-08-22T14:27:06+00:00"
         },
         {
+            "name": "jbelien/oauth2-openstreetmap",
+            "version": "0.1.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jbelien/oauth2-openstreetmap.git",
+                "reference": "aa121c88f540738f7c59eaa595323f36679bbbaa"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jbelien/oauth2-openstreetmap/zipball/aa121c88f540738f7c59eaa595323f36679bbbaa",
+                "reference": "aa121c88f540738f7c59eaa595323f36679bbbaa",
+                "shasum": ""
+            },
+            "require": {
+                "league/oauth2-client": "^2.6"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.4",
+                "phpunit/phpunit": "^12.4",
+                "squizlabs/php_codesniffer": "^4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "JBelien\\OAuth2\\Client\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "OpenStreetMap OAuth 2.0 support for the PHP League's OAuth 2.0 Client ",
+            "keywords": [
+                "OpenStreetMap",
+                "authorisation",
+                "authorization",
+                "client",
+                "oauth",
+                "oauth2",
+                "osm"
+            ],
+            "support": {
+                "issues": "https://github.com/jbelien/oauth2-openstreetmap/issues",
+                "source": "https://github.com/jbelien/oauth2-openstreetmap/tree/0.1.4"
+            },
+            "time": "2026-05-16T14:39:48+00:00"
+        },
+        {
             "name": "laravel/framework",
             "version": "v13.5.0",
             "source": {
@@ -1841,6 +1889,71 @@
                 }
             ],
             "time": "2024-09-21T08:32:55+00:00"
+        },
+        {
+            "name": "league/oauth2-client",
+            "version": "2.9.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/thephpleague/oauth2-client.git",
+                "reference": "26e8c5da4f3d78cede7021e09b1330a0fc093d5e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/thephpleague/oauth2-client/zipball/26e8c5da4f3d78cede7021e09b1330a0fc093d5e",
+                "reference": "26e8c5da4f3d78cede7021e09b1330a0fc093d5e",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "guzzlehttp/guzzle": "^6.5.8 || ^7.4.5",
+                "php": "^7.1 || >=8.0.0 <8.6.0"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.3.5",
+                "php-parallel-lint/php-parallel-lint": "^1.4",
+                "phpunit/phpunit": "^7 || ^8 || ^9 || ^10 || ^11",
+                "squizlabs/php_codesniffer": "^3.11"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "League\\OAuth2\\Client\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Alex Bilbie",
+                    "email": "hello@alexbilbie.com",
+                    "homepage": "http://www.alexbilbie.com",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Woody Gilk",
+                    "homepage": "https://github.com/shadowhand",
+                    "role": "Contributor"
+                }
+            ],
+            "description": "OAuth 2.0 Client Library",
+            "keywords": [
+                "Authentication",
+                "SSO",
+                "authorization",
+                "identity",
+                "idp",
+                "oauth",
+                "oauth2",
+                "single sign on"
+            ],
+            "support": {
+                "issues": "https://github.com/thephpleague/oauth2-client/issues",
+                "source": "https://github.com/thephpleague/oauth2-client/tree/2.9.0"
+            },
+            "time": "2025-11-25T22:17:17+00:00"
         },
         {
             "name": "league/uri",
@@ -9088,7 +9201,7 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.3"
+        "php": "^8.4"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"
