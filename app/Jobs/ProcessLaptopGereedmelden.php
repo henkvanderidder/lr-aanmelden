@@ -77,8 +77,11 @@ class ProcessLaptopGereedmelden extends ProcessBaseJob
 
 
         // Stap 3: zoek Location "naam (woonplaats)" in SnipeIT en haal het id op.
-        $locationName = ucfirst(strtolower($laptop['naam'])) ?? 'naam_onbekend';
-        $locationName .= "  (" . ucfirst(strtolower($laptop['woonplaats'])) . ")";
+        //$locationName = ucfirst(strtolower($laptop['naam'])) ?? 'naam_onbekend';
+        //$locationName .= "  (" . ucfirst(strtolower($laptop['woonplaats'])) . ")";
+
+        $locationName = $laptop['naam'] ?? 'Naam Onbekend';
+        $locationName .= "  (" . $laptop['woonplaats'] . ")";
 
         $locationId = $this->verwerkSnipeITPart('locations', $locationName, 1, [  // wel default id
             'name' => $locationName,

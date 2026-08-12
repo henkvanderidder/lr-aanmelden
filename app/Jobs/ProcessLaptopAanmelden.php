@@ -65,8 +65,8 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
         ]);
 
         // Stap 6: zoek Location "naam (woonplaats)" in SnipeIT en haal het id op.
-        $locationName = ucfirst(strtolower($laptop['naam'])) ?? 'naam_onbekend';
-        $locationName .= "  (" . ucfirst(strtolower($laptop['woonplaats'])) . ")";
+        //$locationName = ucfirst(strtolower($laptop['naam'])) ?? 'naam_onbekend';
+        //$locationName .= "  (" . ucfirst(strtolower($laptop['woonplaats'])) . ")";
 
         /* oude manier van verwerken van locatie, nu vervangen door de naam en woonplaats van de aanmelder.
         $locationName = str_replace('-', '_', $locationName); // vervang - door underscores
@@ -79,7 +79,10 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
         }
         */
 
-        $locationId = $this->verwerkSnipeITPart('locations', $locationName, 1, [  // geen default id
+        $locationName = $laptop['naam'] ?? 'Naam Onbekend';
+        $locationName .= "  (" . $laptop['woonplaats'] ?? 'Onbekend' . ")";
+
+        $locationId = $this->verwerkSnipeITPart('locations', $locationName, 1, [  
             'name' => $locationName,
             'company_id' => $companyId,
             'notes' => 'Locatie aangemaakt door API'

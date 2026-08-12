@@ -25,7 +25,7 @@
         </tr>
       </table>
       <p>Succes met het installeren van de laptop.</p>
-      <p>Zou je ons (info@laptoprevive.nl) een bericht willen sturen, zodra de laptop geïnstalleerd is? 
+      <p>Zodra de laptop geïnstalleerd is, kun je hem gereedmelden via het formulier: Laptop Gereedmelden. 
          Dan wordt de laptop 'Op Voorraad' gezet.</p>
       <p></p>
       <p>Met vriendelijke groet,<br>

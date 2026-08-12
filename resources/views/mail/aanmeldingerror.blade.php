@@ -41,7 +41,7 @@
             <td>{{ $laptop['email'] ?? 'N/A' }}</td>
         </tr>
       </table>
-      <p>Er is een CC van dit bericht verstuurd aan de Central Administratie van Laptop Revive. 
+      <p>Er is een CC van dit bericht verstuurd aan de Centrale Administratie van Laptop Revive. 
          Zij zullen met u contact opnemen.</p>
       <p></p>
       <p>Met vriendelijke groet,<br>

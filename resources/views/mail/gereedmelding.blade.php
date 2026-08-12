@@ -5,7 +5,7 @@
 </head>
 <body>
     <h1>Beste Laptop Reviver,</h1>
-    <p>Hieronder vind je de details van je laptop-gereedmelding:</p>
+    <p>Hieronder vind je de details van je laptop gereedmelding:</p>
     <table border="1" cellpadding="5" cellspacing="0">
         <tr>
             <th>LR nummer</th>
