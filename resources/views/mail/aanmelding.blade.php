@@ -24,7 +24,9 @@
             <td>{{ $laptop['serialnumber'] ?? 'N/A' }}</td>
         </tr>
       </table>
-      <p>Zou je ons een bericht willen sturen, zodra de laptop geïnstalleerd is?</p>
+      <p>Succes met het installeren van de laptop.</p>
+      <p>Zou je ons (info@laptoprevive.nl) een bericht willen sturen, zodra de laptop geïnstalleerd is? 
+         Dan wordt de laptop 'Op Voorraad' gezet.</p>
       <p></p>
       <p>Met vriendelijke groet,<br>
       Het Laptop Revive Team</p>

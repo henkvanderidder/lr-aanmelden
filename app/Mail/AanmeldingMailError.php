@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class AanmeldingMail extends Mailable
+class AanmeldingMailError extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -29,9 +29,9 @@ class AanmeldingMail extends Mailable
          *   [productname] => DPS2000
          *   [serialnumber] => DPS2000-1234
          *   [email] => henk.vande.ridder@solcon.nl
-         *   [naam] => Henk van de Ridder
+        *    [naam] => Henk van de Ridder
          *   [woonplaats] => Putten
-         *   [lrnummer] => LR00006
+         *   [lrnummer] => LR-00006
          */ 
     }
 
@@ -51,7 +51,7 @@ class AanmeldingMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.aanmelding',
+            view: 'mail.aanmeldingerror',
             with: [
                 'laptop' => $this->laptop,
             ],

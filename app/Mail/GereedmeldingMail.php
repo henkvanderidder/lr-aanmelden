@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class AanmeldingMail extends Mailable
+class GereedmeldingMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -41,7 +41,7 @@ class AanmeldingMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Aanmelding laptop',
+            subject: 'Gereedmelding laptop',
         );
     }
 
@@ -51,7 +51,7 @@ class AanmeldingMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.aanmelding',
+            view: 'mail.gereedmelding',
             with: [
                 'laptop' => $this->laptop,
             ],
