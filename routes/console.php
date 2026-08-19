@@ -12,5 +12,5 @@ Artisan::command('inspire', function () {
 
 
 // TODO: Schedule the ProcessLaptopAanmelden job to run every 5 minutes
-Schedule::job(new ProcessLaptopAanmelden())->everyMinute();
+// Schedule::job(new ProcessLaptopAanmelden())->everyMinute();
 // Schedule::job(new TestJob())->everyFiveMinutes();
