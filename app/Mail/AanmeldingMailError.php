@@ -41,7 +41,7 @@ class AanmeldingMailError extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Aanmelding laptop',
+            subject: 'Error - Aanmelding laptop',
         );
     }
 

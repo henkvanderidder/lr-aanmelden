@@ -164,8 +164,8 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
         $token = env('SNIPEIT_TOKEN');
 
         $response = Http::withHeaders([
-            'Accept' => 'application/json',
             'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
         ])->get($url);
 
         $data = [];

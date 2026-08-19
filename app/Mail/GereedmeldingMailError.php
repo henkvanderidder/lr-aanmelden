@@ -38,7 +38,7 @@ class GereedmeldingMailError extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Gereedmelding laptop',
+            subject: 'Error - Gereedmelding laptop',
         );
     }
 
