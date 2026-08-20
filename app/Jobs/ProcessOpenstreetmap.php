@@ -51,7 +51,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
                     $responseData = $response->json();
                     $data = $responseData['rows'] ?? [];
                     $gevonden = count($data);
-                    Log::info('leesReviverUsers: SnipeIT response for users: ' . $gevonden . ' users.');
+                    //Log::info('leesReviverUsers: SnipeIT response for users: ' . $gevonden . ' users.');
                     //Log::info('LaptopAanmelden: SnipeIT response data for users: ' . print_r($data, true) );
                     $offset += $limit;
                     if  ($offset >= 1000) $gevonden = 0; // beveiliging, niet meer dan 1000 laptop revivers
@@ -72,6 +72,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
                         'naam' => $row['name'],
                         'postcode' => $row['zip'],
                         'afdeling' => $row['department']['name'],
+                        'aantal' => $row['assets_count'],
                     );
                     $this->reviverUsers[] = $reviver;
                 }
@@ -134,7 +135,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
             // Log::info('OpenStreetMap: verzamelPostcodeLijst regel'. print_r($arPostcode,1));
             $this->postcodeLijst[] = $arPostcode;
         }
-        Log::info('OpenStreetMap: verzamelPostcodeLijst postcodeLijst '. print_r($this->postcodeLijst[0],1));
+        //Log::info('OpenStreetMap: verzamelPostcodeLijst postcodeLijst '. print_r($this->postcodeLijst[0],1));
 
         /*
             [2026-08-19 13:33:40] local.INFO: OpenStreetMap: verzamelReviverUsers postcodeLijst Array
@@ -162,21 +163,23 @@ class ProcessOpenstreetmap extends ProcessBaseJob
 
     }
 
-    private function verrijkMetPosition()
+    private function verrijkMetPositie()
     {
-        // doorloop users
-        foreach($this->reviverUsers as $userKey => $user) {
-            // zoek postcode
-            $this->reviverUsers[$userKey]['latitude'] = -1;
-            $this->reviverUsers[$userKey]['longitude'] = -1;
+         // doorloop users
+        $aantal = count($this->reviverUsers);
+        for ($i=0;$i<$aantal;$i++) {
+            $this->reviverUsers[$i]['latitude'] = -1;
+            $this->reviverUsers[$i]['longitude'] = -1;
+            // doorloop de postcodes
             foreach($this->postcodeLijst as $arPostcode) {
-                if (substr($user['postcode'],0,4) == $arPostcode[0]) {
-                    $this->reviverUsers[$userKey]['latitude'] = $arPostcode[4];
-                    $this->reviverUsers[$userKey]['longitude'] = $arPostcode[5];
+                if (substr($this->reviverUsers[$i]['postcode'],0,4) == $arPostcode[0]) {
+                    $this->reviverUsers[$i]['latitude'] = $arPostcode[4];
+                    $this->reviverUsers[$i]['longitude'] = $arPostcode[5];
                 }
             }
+
         }
-        Log::info('OpenStreetMap: verrijkte ReviverUsers: '.print_r($this->reviverUsers[0],1));
+        //Log::info('OpenStreetMap: verrijkte ReviverUsers: '.print_r($this->reviverUsers[0],1));
         /*
             [2026-08-19 13:58:05] local.INFO: OpenStreetMap: verrijkte ReviverUsers: Array
             (
@@ -186,6 +189,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
                         [naam] => Rinus Loof-van Overmeeren
                         [postcode] => 1311
                         [afdeling] => Centrale Administratie/Reviver
+                        [aantal] => 1
                         [latitude] => 52.3681
                         [longitude] => 5.1796
                     )
@@ -196,12 +200,82 @@ class ProcessOpenstreetmap extends ProcessBaseJob
                         [naam] => Zoila Daugherty
                         [postcode] => 5189
                         [afdeling] => Laptop Reviver
+                        [aantal] => 0
                         [latitude] => -1
                         [longitude] => -1
                     )
 
         */
 
+    }
+
+        private function leesGereserveerdeUserAssets($userId,$statusId) {
+
+        //
+        $gereserveerd = 0;
+
+        // startpunt
+        $offset=0;
+        $limit=50;
+        try {
+            $url = env('SNIPEIT_URL') . "/api/v1/hardware?limit=$limit&offset=$offset&assigned_to=$userId&assigned_type=App%5CModels%5CUser";
+            $token = env('SNIPEIT_TOKEN');
+            // Log::info('leesGereserveerdeUserAssets: SnipeIT url ' . $url . '. ');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])->get($url);
+
+            $data = [];
+            if ($response->successful()) {
+                $responseData = $response->json();
+                $data = $responseData['rows'] ?? [];
+                $aantal = count($data);
+                // Log::info("leesGereserveerdeUserAssets: SnipeIT response for user $userId-$statusId: " . $aantal . ' hardware.');
+                if ($userId == 63 || $userId == 95 || $userId == 122) {
+                    //Log::info('leesGereserveerdeUserAssets: SnipeIT url ' . $url . '. ');
+                    //Log::info("leesGereserveerdeUserAssets: SnipeIT response data for user $userId-$statusId: " . print_r($data, true) );
+                }
+                foreach($data as $asset) {
+                    if (isset($asset['status']['id'])) {
+                        if ($asset['status']['id'] == $statusId) {
+                            $gereserveerd++;
+                        }
+                    }
+                }
+            } 
+        }
+        catch (Exception $e) {
+            Log::error('leesGereserveerdeUserAssets: SnipeIT error: ' . $e->getMessage());
+        }
+        // sleep(5); // wacht 5 seconden voor snipeit max attemps
+
+        return $gereserveerd;
+    }
+
+    private function bepaalGereserveerd() {
+        Log::info('OpenStreetMap: bepaalGeserveerd called');
+
+        // bepaal afdeling Centrale Administratie/Reviver
+        $statusId = $this->readSnipeITPartforId('statuslabels', 'Gereserveerd', 'id', 'asc');
+        Log::info('OpenStreetMap: bepaalGereserveerd statuslabel: '.$statusId);
+        
+        // doorloop users
+        $aantal = count($this->reviverUsers);
+        for ($i=0;$i<$aantal;$i++) {
+            $this->reviverUsers[$i]['gereserveerd'] = 0;
+            $userId = $this->reviverUsers[$i]['id'];
+            if ($this->reviverUsers[$i]['aantal'] > 0) {
+                $gereserveerd = $this->leesGereserveerdeUserAssets($userId,$statusId);
+                $this->reviverUsers[$i]['gereserveerd'] = $gereserveerd;
+            }
+            if (($userId == 63) or ($userId == 95) or ($userId == 122)  or ($userId == 156) or ($userId == 321)) {
+                //Log::info("bepaalGereserveeerd: resultaat for user $userId: " . print_r($this->reviverUsers[$i], true) );
+            }
+
+        }
+        //Log::info("bepaalGereserveeerd: resultaat: " . print_r($this->reviverUsers[0], true) );
     }
 
     public function handle(): void {
@@ -212,7 +286,12 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         $this->verzamelPostcodeLijst();
         Log::info('OpenStreetMap: aantal verzamelde postcodes: ' . count($this->postcodeLijst));
 
-        $this->verrijkMetPosition();
+        $this->verrijkMetPositie();
+        Log::info('OpenStreetMap: aantal verzamelde users na verrijkMetPositie: ' . count($this->reviverUsers));
+
+        $this->bepaalGereserveerd();
+        Log::info('OpenStreetMap: aantal verzamelde users na bepaalgereserveerd: ' . count($this->reviverUsers));
+        // Log::info("'OpenStreetMap: alle users: " . print_r($this->reviverUsers, true) );
 
         Log::info('OpenStreetMap: job finished '.date("Y-m-d H:i:s").'.');
     }
