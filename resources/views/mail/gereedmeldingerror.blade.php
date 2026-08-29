@@ -10,7 +10,7 @@
     <table border="1" cellpadding="5" cellspacing="0">
         <tr>
             <th>Email CC</th>
-            <td>{{ $laptop['cc'] ?? 'N/A' }}</td>
+            <td>{{ $laptop['cc'] ?? 'nvt' }}</td>
         </tr>
         <tr>
             <th>ERROR</th>
@@ -21,16 +21,16 @@
             <td>{{ $laptop['lrnummer'] ?? 'N/A' }}</td>
         </tr>
         <tr>
+            <th>Beperkingen</th>
+            <td>{{ $laptop['beperkingen'] ?? 'nvt' }}</td>
+        </tr>
+        <tr>
             <th>Email</th>
             <td>{{ $laptop['email'] ?? 'N/A' }}</td>
         </tr>
-        <tr>
-            <th>Naam</th>
-            <td>{{ $laptop['naam'] ?? 'N/A' }}</td>
-        </tr>
+
       </table>
-      <p>Er is een CC van dit bericht verstuurd aan de Centrale Administratie van Laptop Revive. 
-         Zij zullen met u contact opnemen.</p>
+      <p>Probeer het nog een keer. Neem daarna contact op met de centrale administratie.</p>
       <p></p>
       <p>Met vriendelijke groet,<br>
       Het Laptop Revive Team</p>

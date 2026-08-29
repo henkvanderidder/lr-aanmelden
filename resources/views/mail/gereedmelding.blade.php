@@ -12,12 +12,12 @@
             <td>{{ $laptop['lrnummer'] ?? 'N/A' }} Op Voorraad</td>
         </tr>
         <tr>
-            <th>Email</th>
-            <td>{{ $laptop['email'] ?? 'N/A' }}</td>
+            <th>Beperkingen</th>
+            <td>{{ $laptop['beperkingen'] ?? 'nvt' }}</td>
         </tr>
         <tr>
-            <th>Naam</th>
-            <td>{{ $laptop['naam'] ?? 'N/A' }}</td>
+            <th>Email</th>
+            <td>{{ $laptop['email'] ?? 'N/A' }}</td>
         </tr>
       </table>
       <p></p>

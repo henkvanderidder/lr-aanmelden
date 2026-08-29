@@ -29,20 +29,11 @@
             <td>{{ $laptop['serialnumber'] ?? 'N/A' }}</td>
         </tr>
         <tr>
-            <th>Naam</th>
-            <td>{{ $laptop['naam'] ?? 'N/A' }}</td>
-        </tr>
-        <tr>
-            <th>Woonplaats</th>
-            <td>{{ $laptop['woonplaats'] ?? 'N/A' }}</td>
-        </tr>
-        <tr>
             <th>Email</th>
             <td>{{ $laptop['email'] ?? 'N/A' }}</td>
         </tr>
       </table>
-      <p>Er is een CC van dit bericht verstuurd aan de Centrale Administratie van Laptop Revive. 
-         Zij zullen met u contact opnemen.</p>
+      <p>Probeer het nog een keer. Neem daarna contact op met de centrale administratie.</p>
       <p></p>
       <p>Met vriendelijke groet,<br>
       Het Laptop Revive Team</p>

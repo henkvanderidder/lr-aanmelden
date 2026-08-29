@@ -64,42 +64,38 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
             'notes' => 'Status aangemaakt door API'
         ]);
 
-        // Stap 6: zoek Location "naam (woonplaats)" in SnipeIT en haal het id op.
-        //$locationName = ucfirst(strtolower($laptop['naam'])) ?? 'naam_onbekend';
-        //$locationName .= "  (" . ucfirst(strtolower($laptop['woonplaats'])) . ")";
+        // komt in notes te staan
+        $userdisplayname = $laptop['userdisplayname'] ?? 'Onbekende user';
 
-        /* oude manier van verwerken van locatie, nu vervangen door de naam en woonplaats van de aanmelder.
-        $locationName = str_replace('-', '_', $locationName); // vervang - door underscores
-        $delen = explode('_', $locationName,2);
-        if (count($delen) == 1) {
-            $locationName = ucfirst(trim($delen[0])); // neem alleen het eerste deel van de locatie, voor de naam in SnipeIT
-        }
-        if (count($delen) == 2) {
-            $locationName = ucfirst(trim($delen[1])).' ('.ucfirst(trim($delen[0])).')'; // neem alleen het eerste deel van de locatie, voor de naam in SnipeIT
-        }
-        */
+        // bepaal locatie = Plaats (Voornaam)
+        $locationName = 'Onbekend';
 
-        $locationName = $laptop['naam'] ?? 'Naam Onbekend';
-        $locationName .= "  (" . $laptop['woonplaats'] ?? 'Onbekend' . ")";
-
-        $locationId = $this->verwerkSnipeITPart('locations', $locationName, 1, [  
-            'name' => $locationName,
-            'company_id' => $companyId,
-            'notes' => 'Locatie aangemaakt door API'
-        ]);
-
-        // Stap 7: opzoeken gebruiker met emailadres in SnipeIT en haal het id op. 
+        // Stap 6: opzoeken gebruiker met emailadres in SnipeIT en haal het id op. 
         // Als niet gevonden, maak foutmelding aan en zet $errorMsg in assetTag
-        $userEmail = $laptop['email'] ?? '';
+        $userEmail = strtolower($laptop['email'] ?? '');
         $userId = $this->readSnipeITPartforId('users', $userEmail, 'email', 'asc', 'id');
         if ($userId === 0) {
             $errorMsg = "Gebruiker met emailadres " . $userEmail . " niet gevonden in SnipeIT";
             Log::error('LaptopAanmelden: ' . $errorMsg);
             $assetTag = "ERROR: " . $errorMsg;
         } else {
+            // lees user by user_id tbv locatie
+            $userData = $this->readSnipeITUserForId($userId);
+
+            // Stap 7: zoek Location "Naam.Woonplaats (Naam)" in SnipeIT en haal het id op.
+            $locationId = 0;
+            if (isset($userData['city'])) {
+                $firstName = ucfirst(strtolower($userData['first_name']));
+                $city = ucfirst(strtolower($userData['city']));
+                $city = str_replace("'", '', $city); // ' van 's Gravenhage
+
+                $locationName = preg_replace('/\s+/','',$firstName.".".$city); // [voornaam].[plaats]
+                $locationId = $this->readSnipeITPartforId('locations', $locationName, '', '', 'id');
+                // kan 0 geven
+            }
 
             // Stap 8: zoek laatste asset tag in SnipeIT en bepaal de volgende asset tag.   
-            $assetTag = 'LR0';
+            $assetTag = 'LR';
             $latestAssetTag = $this->readSnipeITPartforId('hardware', $assetTag, 'asset_tag', 'desc', 'asset_tag');
             if (substr($latestAssetTag, 0, 2) !== 'LR') {
                 Log::error('LaptopAanmelden: SnipeIT no asset tags found starting with "LR" ');
@@ -107,26 +103,32 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
             } else {
                 Log::info('LaptopAanmelden: SnipeIT latest asset tag found: ' . $latestAssetTag);
             }
-            $nummer = intval(substr($latestAssetTag, 3)) + 1;
+            $nummer = intval(substr($latestAssetTag, 2)) + 1;
             $assetTag = 'LR' . str_pad($nummer, 5, '0', STR_PAD_LEFT);
 
             // Stap 9: maak een nieuwe asset aan in SnipeIT met de gegevens van de laptop, en de opgehaalde ids van company, category, model, location, en de nieuwe asset tag.
-            $assetId = $this->createSnipeITPart('hardware', 
-            [
+            $hardwareArray = [
                 "archived" => false,
                 "warranty_months" => null,
                 "depreciate" => false,
                 "supplier_id" => null,
                 "requestable" => false,
-                "rtd_location_id" => $locationId,
-                "location_id" => $locationId,
                 "asset_tag" => $assetTag,
                 "status_id" => $statusLabelId,
                 "model_id" => $modelId,
                 "serial" => $laptop['serialnumber'] ?? 'Onbekend',
                 "company_id" => $companyId,
-                "notes" => "Asset aangemaakt door API"
-            ]);
+                "notes" => "Asset aangemaakt door: $userdisplayname"
+            ];
+
+            if ($locationId > 0) {
+                $hardwareArray['location_id'] = $locationId;
+                $hardwareArray['rtd_location_id'] = $hardwareArray['location_id'];
+            } else {
+                $hardwareArray["notes"] .="\nOnbekende locatie $locationName";
+            }
+
+            $assetId = $this->createSnipeITPart('hardware', $hardwareArray);
 
             // als aanmaken niet lukt dan foutmelding in assetTag zetten.
             if (!$assetId) {
@@ -139,7 +141,7 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
         if (substr($assetTag, 0, 5) === "ERROR") {
             $laptop['lrnummer'] = "Onbekend";
             $laptop['error'] = substr($assetTag, 7);
-            $laptop['cc'] =  'CC gestuurd naar info@laptoprevive.nl';
+            // $laptop['cc'] =  'CC gestuurd naar info@laptoprevive.nl';
             Mail::to($laptop['email'])->send(new AanmeldingMailError($laptop));
             $mailhost = env('MAIL_HOST');
             Log::info('LaptopAanmelden: gevonden mailhost: -' . $mailhost. '-');
@@ -147,6 +149,7 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
                 Log::info('LaptopAanmelden: Mailtrap detected, waiting 15 seconds after sending');
                 sleep(15); // wacht 15 seconden voor mailtrap
             }
+            /*
             $laptop['cc'] =  'CC voor info@laptoprevive.nl';   
             Mail::to('info@laptoprevive.nl')->send(new AanmeldingMailError($laptop));
             Log::info('LaptopAanmelden: SnipeIT asset not created, error: ' . $laptop['error']);
@@ -154,6 +157,7 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
                 Log::info('LaptopAanmelden: Mailtrap detected, waiting 15 seconds after sending');
                 sleep(15); // wacht 15 seconden voor mailtrap
             }
+            */
         } else {
             $laptop['lrnummer'] = $assetTag;
             $laptop['error'] = "";
@@ -173,6 +177,7 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
         Log::info('LaptopAanmelden: job gestart '.date("Y-m-d H:i:s").'.');
         $laptops = $this->readNextCloud('aanmelden');
         Log::info('LaptopAanmelden: $laptops: ' . count($laptops));
+
         foreach ($laptops as $laptop) {
             Log::info('LaptopAanmelden: laptop: ' . print_r($laptop, true) );
             $this->VerwerkAanmeldenInSnipeIT($laptop);

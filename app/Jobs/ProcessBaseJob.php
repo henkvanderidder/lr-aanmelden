@@ -103,9 +103,10 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
                     $submissionGevonden = true;
                     Log::info('Laptop' . ucfirst($soort) . ': submission: ' . $submission['id'] . ' - ' . $submission['userDisplayName']);
                     $submissionDetails = $this->readNextcloudForms('/' . $form['id'] . '/submissions/' . $submission['id']);
-                    //Log::info('Laptop' . ucfirst($soort) . ': submission details: ' . json_encode($submissionDetails));
+                    Log::info('Laptop' . ucfirst($soort) . ': submission details: ' . json_encode($submissionDetails));
                     $result = [];
                     $result["submissionid"] = $submission['id'];
+                    $result['userdisplayname'] = $submissionDetails['userDisplayName'] ?? "";
                     $answers = $submissionDetails['answers'] ?? [];
                     foreach ($answers as $answer) {
                         Log::info('Laptop' . ucfirst($soort) . ': answer: ' . $answer['questionId'] . ' - ' . $answer['text']);
@@ -139,6 +140,7 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
             Log::info('Laptop' . ucfirst($soort) . ': geen formulieren gevonden.');
         } else {
             Log::info('Laptop' . ucfirst($soort) . ': formulieren gevonden: ' . count($results));
+            //Log::info('Laptop' . ucfirst($soort) . ': submission results: ' . print_r($results,1));
         }
 
         return $results;
@@ -159,7 +161,7 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
                 $url .= '&order=' . urlencode($order);
             }
         }
-        Log::info('LaptopAanmelden: SnipeIT url ' . $url . '. ');
+        Log::info('readSnipeITPartforId: SnipeIT url ' . $url . '. ');
 
         $token = env('SNIPEIT_TOKEN');
 
@@ -172,20 +174,21 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
         if ($response->successful()) {
             $responseData = $response->json();
             $data = $responseData['rows'][0] ?? [];
-            Log::info('LaptopAanmelden: SnipeIT response for ' . $part . ': ' . count($data) . ' items.');
-            //Log::info('LaptopAanmelden: SnipeIT response data for ' . $part . ': ' . print_r($responseData, true) );
+            Log::info('readSnipeITPartforId: SnipeIT response for ' . $part . ': ' . count($data) . ' items.');
+            //Log::info('readSnipeITPartforId: SnipeIT response data for ' . $part . ': ' . print_r($responseData, true) );
         } else {
-            Log::error('LaptopAanmelden: SnipeIT Failed to read ' . $part . ': ' . $response->status());
+            Log::error('readSnipeITPartforId: SnipeIT Failed to read ' . $part . ': ' . $response->status());
         }    
 
+        $value = 0;
         if (count($data) !== 0) {
-            $id = $data[$field] ?? 0;
-            Log::info('LaptopAanmelden: SnipeIT ' . $field .'='. $id .' found for ' . $part . '.');
+            $value = $data[$field] ?? 0;
+            Log::info('readSnipeITPartforId: SnipeIT ' . $field .'='. $value .' found for ' . $part . '.');
         } else {
-            $id = ($field === 'id') ? 0 : 'LR00000'; // default value if not found, depending on the field type
-            Log::info('LaptopAanmelden: SnipeIT no ' . $field . ' found for ' . $part . '. ');
+            $value = ($field === 'id') ? 0 : 'Unknown'; // default value if not found, depending on the field type
+            Log::info('readSnipeITPartforId: SnipeIT no ' . $field . ' found for ' . $part . 'with '. $value .'. ');
         }       
-        return $id;
+        return $value;
     }
 
     // aanmaken in SnipeIT van een bepaald part, 
@@ -203,10 +206,10 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
 
         if ($response->successful()) {
             //$responseData = $response->json();
-            Log::info('LaptopAanmelden: SnipeIT created ' . $part );
+            Log::info('createSnipeITPart: SnipeIT created ' . $part );
             return "OK";
         } else {
-            Log::error('LaptopAanmelden: SnipeIT Failed to create ' . $part . ': ' . $response->status() );
+            Log::error('createSnipeITPart: SnipeIT Failed to create ' . $part . ': ' . $response->status() );
             return "FAILED";
         }
 
@@ -228,10 +231,10 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
 
         if ($response->successful()) {
             //$responseData = $response->json();
-            Log::info('LaptopAanmelden: SnipeIT updated ' . $part. ' for ID ' . $id. ' with data: ' . print_r($data, true) );
+            Log::info('updateSnipeITPart: SnipeIT updated ' . $part. ' for ID ' . $id. ' with data: ' . print_r($data, true) );
             return "OK";
         } else {
-            Log::error('LaptopAanmelden: SnipeIT Failed to update ' . $part . ' for ID ' . $id . ': ' . $response->status() );
+            Log::error('updateSnipeITPart: SnipeIT Failed to update ' . $part . ' for ID ' . $id . ': ' . $response->status() );
             return "FAILED";
         }
 
@@ -249,29 +252,95 @@ class ProcessBaseJob implements ShouldQueue, ShouldBeUnique
         // zoek part in SnipeIT 
         $partId = $this->readSnipeITPartforId($part, $search, 'name', 'asc');
         if ($partId === 0) {
-            //Log::error('LaptopAanmelden: SnipeIT ' . $part . ' " '.$search. '" not found. ');
+            //Log::error('verwerkSnipeITPart: SnipeIT ' . $part . ' " '.$search. '" not found. ');
             $result =$this->createSnipeITPart($part, $data);
             if ($result === "OK") {
-                Log::info('LaptopAanmelden: SnipeIT ' . $part . ' "'.$search. '" created successfully. ');
+                Log::info('verwerkSnipeITPart: SnipeIT ' . $part . ' "'.$search. '" created successfully. ');
                 // opnieuw zoeken
                 $partId = $this->readSnipeITPartforId($part, $search, 'name', 'asc');
             } else {
                 $errorMsg = "Mislukt om " . $part . ' "' . $search . '" aan te maken in SnipeIT';
-                Log::error('LaptopAanmelden: ' . $errorMsg);
+                Log::error('verwerkSnipeITPart: ' . $errorMsg);
             }
         }
         if ($partId === 0) {
             if ($defaultId !== 0) {
                 $partId = $defaultId; // default part id, if creation of failed.
-                Log::info('LaptopAanmelden: SnipeIT ' . $part . ' "'.$search. '" not found after creation attempt. Using default ' . $part . ' id: ' . $partId);
+                Log::info('verwerkSnipeITPart: SnipeIT ' . $part . ' "'.$search. '" not found after creation attempt. Using default ' . $part . ' id: ' . $partId);
             } else {
-                Log::error('LaptopAanmelden: SnipeIT ' . $part . ' "'.$search. '" not found and creation failed, and no default id provided. ');
+                Log::error('verwerkSnipeITPart: SnipeIT ' . $part . ' "'.$search. '" not found and creation failed, and no default id provided. ');
                 $partId = -1;
             }
         } else {
-            Log::info('LaptopAanmelden: SnipeIT ' . $part . ' "'.$search. '" has id: ' . $partId);
+            Log::info('verwerkSnipeITPart: SnipeIT ' . $part . ' "'.$search. '" has id: ' . $partId);
         }                    
         return $partId;
+    }
+
+    protected function readSnipeITHardwareForAssetTag($assetTag)
+    {
+        //
+        $url = env('SNIPEIT_URL') . '/api/v1/hardware/bytag/' . urlencode($assetTag);
+        Log::info('readSnipeITHardwareForAssetTag: SnipeIT url ' . $url . '. ');
+
+        $token = env('SNIPEIT_TOKEN');
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ])->get($url);
+
+        $data = [];
+        if ($response->successful()) {
+            //$responseData = $response->json();
+            //$data = $responseData['rows'][0] ?? [];
+            $data = $response->json();
+            Log::info('readSnipeITHardwareForAssetTag: SnipeIT data response for read hardware by asset tag ' . $assetTag . '.');
+        } else {
+            Log::error('readSnipeITHardwareForAssetTag: SnipeIT Failed to read hardware by asset tag ' . $assetTag . ': ' . $response->status());
+        }
+
+        if (count($data) !== 0) {
+            $assetId = $data['id'] ?? 0;
+            Log::info('readSnipeITHardwareForAssetTag: SnipeIT assetId=' . $assetId . ' found for Hardware assetTag ' . $assetTag . '.');
+        } else {
+            $assetId = 0; // default value if not found
+            Log::info('readSnipeITHardwareForAssetTag: SnipeIT assetId not found for Hardware assetTag ' . $assetTag . '.');
+        }       
+        return $data;
+    }
+
+    protected function readSnipeITUserForId($userId)
+    {
+        //
+        $url = env('SNIPEIT_URL') . '/api/v1/users/' . urlencode($userId);
+        Log::info('readSnipeITUserForId: SnipeIT url ' . $url . '. ');
+
+        $token = env('SNIPEIT_TOKEN');
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ])->get($url);
+
+        $data = [];
+        if ($response->successful()) {
+            //$responseData = $response->json();
+            //$data = $responseData['rows'][0] ?? [];
+            $data = $response->json();
+            Log::info('readSnipeITUserForId: SnipeIT data response for read user for id ' . $userId . '.');
+        } else {
+            Log::error('readSnipeITUserForId: SnipeIT Failed to read user for id ' . $userId . ': ' . $response->status());
+        }
+
+        $id = 0;
+        if (count($data) !== 0) {
+            $id = $data['id'] ?? 0;
+            Log::info('readSnipeITUserForId: SnipeIT id=' . $id . ' found for user id ' . $userId . '.');
+        } else {
+            Log::info('readSnipeITUserForId: SnipeIT nothing not found for userid ' . $userId . '.');
+        }       
+        return $data;
     }
 
 

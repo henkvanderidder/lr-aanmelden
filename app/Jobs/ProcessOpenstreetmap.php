@@ -70,7 +70,9 @@ class ProcessOpenstreetmap extends ProcessBaseJob
                     $reviver = array(
                         'id' =>  $row['id'],
                         'naam' => $row['name'],
+                        'voornaam' => $row['first_name'],
                         'postcode' => $row['zip'],
+                        'plaats' => $row['city'],
                         'afdeling' => $row['department']['name'],
                         'aantal' => $row['assets_count'],
                     );
@@ -135,7 +137,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
             // Log::info('OpenStreetMap: verzamelPostcodeLijst regel'. print_r($arPostcode,1));
             $this->postcodeLijst[] = $arPostcode;
         }
-        //Log::info('OpenStreetMap: verzamelPostcodeLijst postcodeLijst '. print_r($this->postcodeLijst[0],1));
+        Log::info('OpenStreetMap: verzamelPostcodeLijst postcodeLijst '. print_r($this->postcodeLijst[1],1));
 
         /*
             [2026-08-19 13:33:40] local.INFO: OpenStreetMap: verzamelReviverUsers postcodeLijst Array
@@ -165,6 +167,8 @@ class ProcessOpenstreetmap extends ProcessBaseJob
 
     private function verrijkMetPositie()
     {
+        // TODO: draai dit om postcodelijst is meer dan 4300 items, users zijn er 190
+
          // doorloop users
         $aantal = count($this->reviverUsers);
         for ($i=0;$i<$aantal;$i++) {
@@ -173,8 +177,10 @@ class ProcessOpenstreetmap extends ProcessBaseJob
             // doorloop de postcodes
             foreach($this->postcodeLijst as $arPostcode) {
                 if (substr($this->reviverUsers[$i]['postcode'],0,4) == $arPostcode[0]) {
-                    $this->reviverUsers[$i]['latitude'] = $arPostcode[4];
-                    $this->reviverUsers[$i]['longitude'] = $arPostcode[5];
+                    if (isset($arPostcode[4]) && isset($arPostcode[5])) {
+                        $this->reviverUsers[$i]['latitude'] = $arPostcode[4];
+                        $this->reviverUsers[$i]['longitude'] = $arPostcode[5];
+                    }
                 }
             }
 
@@ -278,6 +284,43 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         //Log::info("bepaalGereserveeerd: resultaat: " . print_r($this->reviverUsers[0], true) );
     }
 
+    public function schrijfCSVbestand()
+    {
+        // Latitude is de Engelse term voor breedtegraad en longitude is de Engelse term voor lengtegraad
+
+        Log::info('OpenStreetMap: schrijfCSVbestand called');
+
+        // $LR_OSM_lijst = Storage::disk('local')->get('LR_OSM_lijst.csv');
+        // $arPostcode = str_getcsv($postcode,",");
+        $kop = '"Afdeling","Voornaam","Plaats","Postcode","Activa","Postal Code","latitude","longitude"';
+        $regels = $kop."\n";
+        $uitvallers = array();
+        // doorloop users
+        $aantal = count($this->reviverUsers);
+        $tel = 0;
+        foreach ($this->reviverUsers as $reviver) {
+            if ($reviver['latitude'] == 0) {
+                $uitvallers[] = $reviver;
+            } else {
+                $tel++;
+                //$regels .= $reviver['afdeling'].",";
+                $regels .= '"'."Revivers".'",';
+                $regels .= '"'.$reviver['voornaam'].'",';
+                $regels .= '"'.$reviver['plaats'].'",';
+                $regels .= '"'.substr($reviver['postcode'],0,4).'",';
+                $regels .= intval($reviver['aantal']) -  intval($reviver['gereserveerd']).",";
+                $regels .= '"'.$reviver['postcode'].'",';
+                $regels .= $reviver['latitude'].",";
+                $regels .= $reviver['longitude']."\n";
+            }
+        }
+        Log::info("schrijfCSVbestand: aantal revivers: $tel, uitvallers: ".count($uitvallers) );
+        Storage::disk('public')->put('LR_OSM_lijst.csv', $regels);
+        //Log::info("bepaalGereserveeerd: resultaat: " . print_r($this->reviverUsers[0], true) );
+        Log::info("schrijfCSVbestand: uitvallers: " . print_r($uitvallers, true) );
+
+    }
+
     public function handle(): void {
         Log::info('OpenStreetMap: job gestart '.date("Y-m-d H:i:s").'.');
         $this->verzamelReviverUsers();
@@ -291,7 +334,9 @@ class ProcessOpenstreetmap extends ProcessBaseJob
 
         $this->bepaalGereserveerd();
         Log::info('OpenStreetMap: aantal verzamelde users na bepaalgereserveerd: ' . count($this->reviverUsers));
-        // Log::info("'OpenStreetMap: alle users: " . print_r($this->reviverUsers, true) );
+        //Log::info("'OpenStreetMap: alle users: " . print_r($this->reviverUsers, true) );
+
+        $this->schrijfCSVbestand();
 
         Log::info('OpenStreetMap: job finished '.date("Y-m-d H:i:s").'.');
     }
