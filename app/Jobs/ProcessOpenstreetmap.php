@@ -15,6 +15,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
     // use Queueable;
 
     public $reviverUsers = [];
+    public $aanvragerUsers = [];
     public $postcodeLijst = [];
 
     /**
@@ -26,7 +27,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         // Log::info('OpenStreetMap: job created.');
     }
 
-    private function leesReviverUsers($departmentId) {
+    private function leesReviverUsers($soort, $departmentId) {
 
         //
         $doorgaan = true;
@@ -59,24 +60,38 @@ class ProcessOpenstreetmap extends ProcessBaseJob
                     $gevonden = 0;
                     Log::error('leesReviverUsers: SnipeIT Failed to read users: ' . $response->status());
                 }
+
             } catch (Exception $e) {
                 $gevonden = 0;
                 Log::error('leesReviverUsers: SnipeIT error: ' . $e->getMessage());
             }
             if ($gevonden > 0) {
                 // voeg toe aan reviverUsers
-                Log::info('leesReviverUsers: te verwerken users gevonden : ' . $gevonden . ' users.');
+                Log::info("leesReviverUsers: te verwerken $soort gevonden : " . $gevonden . ' users.');
                 foreach ($data as $row) {
                     $reviver = array(
                         'id' =>  $row['id'],
+                        'username' => $row['username'],
                         'naam' => $row['name'],
                         'voornaam' => $row['first_name'],
+                        'displayname' => $row['display_name'],
                         'postcode' => $row['zip'],
                         'plaats' => $row['city'],
                         'afdeling' => $row['department']['name'],
                         'aantal' => $row['assets_count'],
                     );
-                    $this->reviverUsers[] = $reviver;
+                    if ($soort == 'revivers') {
+                        $this->reviverUsers[] = $reviver;
+                    }
+                    if ($soort == 'aanvragers') {
+                        if ($row['manager'] > 0) {
+                            // doe niets
+                        } else {
+                            // alleen zonder manager
+                            $this->aanvragerUsers[] = $reviver;
+                        }
+                    }
+    
                 }
             }
             // sleep(5); // wacht 5 seconden voor snipeit max attemps
@@ -86,24 +101,32 @@ class ProcessOpenstreetmap extends ProcessBaseJob
 
     }
 
-    private function verzamelReviverUsers() {
-        Log::info('OpenStreetMap: verzamelReviverUsers called');
+    private function verzamelAlleUsers() {
+        Log::info('OpenStreetMap: verzamelAlleUsers called');
 
         // bepaal afdeling Centrale Administratie/Reviver
         $afdelingId = $this->readSnipeITPartforId('departments', 'Centrale Administratie/Reviver', 'id', 'asc');
-        Log::info('OpenStreetMap: verzamelReviverUsers afdeling CentraleAdministratie/Reviver: '.$afdelingId);
+        Log::info('OpenStreetMap: verzamelAlleUsers afdeling CentraleAdministratie/Reviver: '.$afdelingId);
         // bepaal de gebruikers die in Snipe-IT de afdeling Centrale Administratie/Reviver hebben
-        $this->leesReviverUsers($afdelingId);
+        $this->leesReviverUsers("revivers",$afdelingId);
         Log::info('OpenStreetMap: verzamelde aantal ReviverUsers: '.count($this->reviverUsers));
         // Log::info('OpenStreetMap: verzamelde ReviverUsers: '.print_r($this->reviverUsers,1));
 
         // bepaal afdeling Laptop Reviver
         $afdelingId = $this->readSnipeITPartforId('departments', 'Laptop Reviver', 'id', 'asc');
-        Log::info('OpenStreetMap: verzamelReviverUsers afdeling Laptop Reviver: '.$afdelingId);
+        Log::info('OpenStreetMap: verzamelAlleUsers afdeling Laptop Reviver: '.$afdelingId);
         // bepaal de gebruikers die in Snipe-IT de afdeling Laptop Reviver hebben
-        $this->leesReviverUsers($afdelingId);
+        $this->leesReviverUsers("revivers",$afdelingId);
         Log::info('OpenStreetMap: verzamelde aantal ReviverUsers: '.count($this->reviverUsers));
         Log::info('OpenStreetMap: verzamelde ReviverUsers: '.print_r($this->reviverUsers[0],1));
+
+        // bepaal afdeling Laptopaanvrager
+        $afdelingId = $this->readSnipeITPartforId('departments', 'Laptopaanvrager', 'id', 'asc');
+        Log::info('OpenStreetMap: verzamelAlleUsers afdeling Laptopaanvrager: '.$afdelingId);
+        // bepaal de gebruikers die in Snipe-IT de afdeling Laptopaanvrager hebben
+        $this->leesReviverUsers("aanvragers",$afdelingId);
+        Log::info('OpenStreetMap: verzamelde aantal AanvragerUsers: '.count($this->aanvragerUsers));
+        Log::info('OpenStreetMap: verzamelde AanvragerUsers: '.print_r($this->aanvragerUsers[0],1));
 
         /*
             [2026-08-19 13:53:40] local.INFO: OpenStreetMap: verzamelde ReviverUsers: Array
@@ -140,7 +163,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         Log::info('OpenStreetMap: verzamelPostcodeLijst postcodeLijst '. print_r($this->postcodeLijst[1],1));
 
         /*
-            [2026-08-19 13:33:40] local.INFO: OpenStreetMap: verzamelReviverUsers postcodeLijst Array
+            [2026-08-19 13:33:40] local.INFO: OpenStreetMap: verzamelAlleUsers postcodeLijst Array
             (
                 [0] => Array
                     (
@@ -165,11 +188,9 @@ class ProcessOpenstreetmap extends ProcessBaseJob
 
     }
 
-    private function verrijkMetPositie()
+    private function verrijkReviversMetPositie()
     {
-        // TODO: draai dit om postcodelijst is meer dan 4300 items, users zijn er 190
-
-         // doorloop users
+        // doorloop users
         $aantal = count($this->reviverUsers);
         for ($i=0;$i<$aantal;$i++) {
             $this->reviverUsers[$i]['latitude'] = -1;
@@ -215,7 +236,31 @@ class ProcessOpenstreetmap extends ProcessBaseJob
 
     }
 
-        private function leesGereserveerdeUserAssets($userId,$statusId) {
+    private function verrijkAanvragersMetPositie()
+    {
+        // doorloop users
+        $aantal = count($this->aanvragerUsers);
+        for ($i=0;$i<$aantal;$i++) {
+            $this->aanvragerUsers[$i]['latitude'] = -1;
+            $this->aanvragerUsers[$i]['longitude'] = -1;
+            // doorloop de postcodes
+            foreach($this->postcodeLijst as $arPostcode) {
+                if (substr($this->aanvragerUsers[$i]['postcode'],0,4) == $arPostcode[0]) {
+                    if (isset($arPostcode[4]) && isset($arPostcode[5])) {
+                        $this->aanvragerUsers[$i]['latitude'] = $arPostcode[4];
+                        $this->aanvragerUsers[$i]['longitude'] = $arPostcode[5];
+                    }
+                }
+            }
+
+        }
+        //Log::info('OpenStreetMap: verrijkte AanvragerUsers: '.print_r($this->aanvragerUsers[0],1));
+
+    }
+
+
+
+    private function leesGereserveerdeUserAssets($userId,$statusId) {
 
         //
         $gereserveerd = 0;
@@ -260,12 +305,12 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         return $gereserveerd;
     }
 
-    private function bepaalGereserveerd() {
+    private function verrijkMetGereserveerd() {
         Log::info('OpenStreetMap: bepaalGeserveerd called');
 
         // bepaal afdeling Centrale Administratie/Reviver
         $statusId = $this->readSnipeITPartforId('statuslabels', 'Gereserveerd', 'id', 'asc');
-        Log::info('OpenStreetMap: bepaalGereserveerd statuslabel: '.$statusId);
+        Log::info('OpenStreetMap: verrijkMetGereserveerd statuslabel: '.$statusId);
         
         // doorloop users
         $aantal = count($this->reviverUsers);
@@ -284,59 +329,123 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         //Log::info("bepaalGereserveeerd: resultaat: " . print_r($this->reviverUsers[0], true) );
     }
 
-    public function schrijfCSVbestand()
+    public function schrijfReviversCSVbestand()
     {
         // Latitude is de Engelse term voor breedtegraad en longitude is de Engelse term voor lengtegraad
 
-        Log::info('OpenStreetMap: schrijfCSVbestand called');
+        Log::info('OpenStreetMap: schrijfReviversCSVbestand called');
 
         // $LR_OSM_lijst = Storage::disk('local')->get('LR_OSM_lijst.csv');
         // $arPostcode = str_getcsv($postcode,",");
         $kop = '"Afdeling","Voornaam","Plaats","Postcode","Activa","Postal Code","latitude","longitude"';
         $regels = $kop."\n";
-        $uitvallers = array();
+        $uitvallers = $kop."\n";
+        $voorraden = $kop."\n";
+        $tel = 0;
+        $uitval = 0;
+        $voorraad = 0;
+
         // doorloop users
         $aantal = count($this->reviverUsers);
-        $tel = 0;
         foreach ($this->reviverUsers as $reviver) {
-            if ($reviver['latitude'] == 0) {
-                $uitvallers[] = $reviver;
-            } else {
+            $regel  = '"'.$reviver['voornaam'].'",';
+            $regel .= '"'.$reviver['plaats'].'",';
+            $regel .= '"'.substr($reviver['postcode'],0,4).'",';
+            $regel .= intval($reviver['aantal']) -  intval($reviver['gereserveerd']).",";
+            $regel .= '"'.$reviver['postcode'].'",';
+            $regel .= $reviver['latitude'].",";
+            $regel .= $reviver['longitude']."\n";
+            if ($reviver['latitude'] > 0)  {
                 $tel++;
-                //$regels .= $reviver['afdeling'].",";
-                $regels .= '"'."Revivers".'",';
-                $regels .= '"'.$reviver['voornaam'].'",';
-                $regels .= '"'.$reviver['plaats'].'",';
-                $regels .= '"'.substr($reviver['postcode'],0,4).'",';
-                $regels .= intval($reviver['aantal']) -  intval($reviver['gereserveerd']).",";
-                $regels .= '"'.$reviver['postcode'].'",';
-                $regels .= $reviver['latitude'].",";
-                $regels .= $reviver['longitude']."\n";
+                $regels .= '"'."Alle Revivers".'",'.$regel;
+            }
+            if ($reviver['latitude'] <= 0) {
+                $uitval++;
+                $uitvallers .= '"'."Revivers met foute postcode".'",'.$regel;
+            } 
+            if ((intval($reviver['aantal']) - intval($reviver['gereserveerd']) > 0)) {
+                $voorraad++;
+                $voorraden .= '"'."Revivers met laptop".'",'.$regel;
             }
         }
-        Log::info("schrijfCSVbestand: aantal revivers: $tel, uitvallers: ".count($uitvallers) );
-        Storage::disk('public')->put('LR_OSM_lijst.csv', $regels);
-        //Log::info("bepaalGereserveeerd: resultaat: " . print_r($this->reviverUsers[0], true) );
-        Log::info("schrijfCSVbestand: uitvallers: " . print_r($uitvallers, true) );
 
+        Storage::disk('public')->put('LR_AlleRevivers_lijst.csv', $regels);
+        Log::info("schrijfAlleReviversCSVbestand: aantal revivers: $tel" );
+
+        Storage::disk('public')->put('LR_FouteRevivers_lijst.csv', $uitvallers);
+        Log::info("schrijfAlleReviversCSVbestand: aantal uitvallers: $uitval" );
+
+        Storage::disk('public')->put('LR_VoorraadRevivers_lijst.csv', $voorraden);
+        Log::info("schrijfAlleReviversCSVbestand: aantal met laptop: $voorraad" );
+
+        // Log::info("schrijfAlleReviversCSVbestand: ".count($this->uitvallerUsers) ."uitvallers: " . print_r($this->uitvallerUsers, true) );
     }
+
+    public function schrijfAanvragersCSVbestand()
+    {
+        // Latitude is de Engelse term voor breedtegraad en longitude is de Engelse term voor lengtegraad
+
+        Log::info('OpenStreetMap: schrijfAanvragersCSVbestand called');
+
+        // $LR_OSM_lijst = Storage::disk('local')->get('LR_OSM_lijst.csv');
+        // $arPostcode = str_getcsv($postcode,",");
+        $kop = '"Afdeling","Username","Plaats","Postcode","Postal Code","latitude","longitude"';
+        $regels = $kop."\n";
+        $uitvallers = $kop."\n";
+        $tel = 0;
+        $uitval = 0;
+
+        // doorloop users
+        $aantal = count($this->aanvragerUsers);
+        foreach ($this->aanvragerUsers as $aanvrager) {
+            $regel  = '"'.$aanvrager['username'].'",';
+            $regel .= '"'.$aanvrager['plaats'].'",';
+            $regel .= '"'.substr($aanvrager['postcode'],0,4).'",';
+            $regel .= '"'.$aanvrager['postcode'].'",';
+            $regel .= $aanvrager['latitude'].",";
+            $regel .= $aanvrager['longitude']."\n";
+            if ($aanvrager['latitude'] > 0)  {
+                $tel++;
+                $regels .= '"'."Laptop Aanvragers".'",'.$regel;
+            } else {
+                $uitval++;
+                $uitvallers .= '"'."Laptop Aanvragers met foute postcode".'",'.$regel;
+            }
+        }
+
+        Storage::disk('public')->put('LR_Aanvragers_lijst.csv', $regels);
+        Log::info("schrijfAanvragersCSVbestand: aantal aanvragers: $tel" );
+
+        Storage::disk('public')->put('LR_FouteAanvragers_lijst.csv', $uitvallers);
+        Log::info("schrijfAanvragersCSVbestand: aantal uitvallers: $uitval" );
+
+        // Log::info("schrijfAlleReviversCSVbestand: ".count($this->uitvallerUsers) ."uitvallers: " . print_r($this->uitvallerUsers, true) );
+    }
+
+
 
     public function handle(): void {
         Log::info('OpenStreetMap: job gestart '.date("Y-m-d H:i:s").'.');
-        $this->verzamelReviverUsers();
+        $this->verzamelAlleUsers();
         Log::info('OpenStreetMap: aantal verzamelde users: ' . count($this->reviverUsers));
+        Log::info('OpenStreetMap: aantal verzamelde aanvragers: ' . count($this->aanvragerUsers));
 
         $this->verzamelPostcodeLijst();
         Log::info('OpenStreetMap: aantal verzamelde postcodes: ' . count($this->postcodeLijst));
 
-        $this->verrijkMetPositie();
+        $this->verrijkReviversMetPositie();
         Log::info('OpenStreetMap: aantal verzamelde users na verrijkMetPositie: ' . count($this->reviverUsers));
 
-        $this->bepaalGereserveerd();
-        Log::info('OpenStreetMap: aantal verzamelde users na bepaalgereserveerd: ' . count($this->reviverUsers));
+        $this->verrijkAanvragersMetPositie();
+        Log::info('OpenStreetMap: aantal verzamelde aanvragers na verrijkMetPositie: ' . count($this->aanvragerUsers));
+
+        $this->verrijkMetGereserveerd();
+        Log::info('OpenStreetMap: aantal verzamelde users na verrijkMetGereserveerd: ' . count($this->reviverUsers));
         //Log::info("'OpenStreetMap: alle users: " . print_r($this->reviverUsers, true) );
 
-        $this->schrijfCSVbestand();
+        $this->schrijfReviversCSVbestand();
+
+        $this->schrijfAanvragersCSVbestand();
 
         Log::info('OpenStreetMap: job finished '.date("Y-m-d H:i:s").'.');
     }
