@@ -26,8 +26,6 @@ class GereedmeldingMailError extends Mailable
          * voorbeeld van $laptop:
          *   [submissionid] => 6
          *   [email] => henk.vande.ridder@solcon.nl
-        *    [naam] => Henk van de Ridder
-         *   [woonplaats] => Putten
          *   [lrnummer] => LR-00006
          */ 
     }

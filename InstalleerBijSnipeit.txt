@@ -1,3 +1,6 @@
+TODO
+- aanvullen met de processen: ProcessLaptopGereedmelden en ProcessOpenStreetMap
+
 1 Controleer: Zet mail-settings en Api keys in .env bestand
 MAIL_MAILER=smtp
 MAIL_SCHEME=smtp
@@ -25,7 +28,7 @@ chown www-data:www-data /var/www/snipe-it/app/Jobs/ProcessLaptopAanmelden.php
 chown www-data:www-data /var/www/snipe-it/app/Mail/AanmeldingMail.php
 chown www-data:www-data /var/www/snipe-it/resources/views/mail/aanmelding.blade.php   
 
-3 voeg toe in routes\consolevi .php
+3 voeg toe in routes\console.php  => HOEFT NIET MEER, WANT JOBS WORDEN NU GESTART DOOR SCHEDULER
 use Illuminate\Support\Facades\Schedule;
 use App\Jobs\ProcessLaptopAanmelden;
 ...

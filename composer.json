@@ -13,7 +13,8 @@
         "jbelien/oauth2-openstreetmap": "^0.1.4",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
-        "league/oauth2-client": "^2.9"
+        "league/oauth2-client": "^2.9",
+        "nino/laravel-nextcloud-fs": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

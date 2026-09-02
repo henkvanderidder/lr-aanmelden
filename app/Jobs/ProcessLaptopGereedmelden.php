@@ -62,15 +62,23 @@ class ProcessLaptopGereedmelden extends ProcessBaseJob
         } else {
             // stap 5: opzoeken locatie
             $userData = $this->readSnipeITUserForId($userId);
-            if (isset($userData['city'])) {
-                $firstName = ucfirst(strtolower($userData['first_name']));
-                $city = ucfirst(strtolower($userData['city']));
-                $city = str_replace("'", '', $city); // ' van 's Gravenhage
 
-                $locationName = preg_replace('/\s+/','',$firstName.".".$city); // [voornaam].[plaats]
-            }
-            // Zoek location, kan 0 geven
-            $locationId = $this->readSnipeITPartforId('locations', $locationName, '', '', 'id');                
+            $locationId = 0;
+            if (isset($userData['location']['id'])) {
+                $locationId = $userData['location']['id'];
+                Log::info('LaptopAanmelden: SnipeIT user location id found: ' . $locationId);
+            } else {
+                if (isset($userData['city'])) {
+                    $firstName = ucfirst(strtolower($userData['first_name']));
+                    $city = ucfirst(strtolower($userData['city']));
+                    $city = str_replace("'", '', $city); // ' van 's Gravenhage
+
+                    $locationName = preg_replace('/\s+/','',$firstName.".".$city); // [voornaam].[plaats]
+                    $locationId = $this->readSnipeITPartforId('locations', $locationName, '', '', 'id');
+                    // kan 0 geven
+                }
+            }            
+            
         } 
 
         // stap 6: opzoeken asset met asset tag in SnipeIT en haal het id op.

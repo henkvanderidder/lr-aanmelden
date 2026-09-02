@@ -60,6 +60,26 @@ return [
             'report' => false,
         ],
 
+        'nextcloud' => [
+            'driver'     => 'nextcloud',
+            'baseUri'    => env('NEXTCLOUD_WEBDAV_URL'),
+            'userName'   => env('NEXTCLOUD_WEBDAV_USER'),
+            'password'   => env('NEXTCLOUD_WEBDAV_PASSWORD'),
+            'directory'  => env('NEXTCLOUD_WEBDAV_PATH'), // optionnal: set a path as visible for nextcloud user defined in userName
+            'use_path_style_endpoint' => true
+        ],
+
+        'nextcloud-OLD' => [
+            'driver' => 'nextcloud',
+            'webdav_url' => env('NEXTCLOUD_WEBDAV_URL'),
+            'webdav_path' => env('NEXTCLOUD_WEBDAV_PATH'),
+            'webdav_user' => env('NEXTCLOUD_WEBDAV_USER'),
+            'webdav_password' => env('NEXTCLOUD_WEBDAV_PASSWORD'),
+            'throw' => false,
+            'report' => false,
+        ],
+
+
     ],
 
     /*

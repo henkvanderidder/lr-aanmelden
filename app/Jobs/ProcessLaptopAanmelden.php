@@ -68,6 +68,7 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
         $userdisplayname = $laptop['userdisplayname'] ?? 'Onbekende user';
 
         // bepaal locatie = Plaats (Voornaam)
+        $locationId = 0;
         $locationName = 'Onbekend';
 
         // Stap 6: opzoeken gebruiker met emailadres in SnipeIT en haal het id op. 
@@ -81,17 +82,23 @@ class ProcessLaptopAanmelden extends ProcessBaseJob
         } else {
             // lees user by user_id tbv locatie
             $userData = $this->readSnipeITUserForId($userId);
+            //Log::error('LaptopAanmelden gevonden user: ' . print_r($userData, true));
 
-            // Stap 7: zoek Location "Naam.Woonplaats (Naam)" in SnipeIT en haal het id op.
+            // Stap 7: zoek Location, eerst van user daarna op "Voornaam.Woonplaats" in SnipeIT en haal het id op.
             $locationId = 0;
-            if (isset($userData['city'])) {
-                $firstName = ucfirst(strtolower($userData['first_name']));
-                $city = ucfirst(strtolower($userData['city']));
-                $city = str_replace("'", '', $city); // ' van 's Gravenhage
+            if (isset($userData['location']['id'])) {
+                $locationId = $userData['location']['id'];
+                Log::info('LaptopAanmelden: SnipeIT user location id found: ' . $locationId);
+            } else {
+                if (isset($userData['city'])) {
+                    $firstName = ucfirst(strtolower($userData['first_name']));
+                    $city = ucfirst(strtolower($userData['city']));
+                    $city = str_replace("'", '', $city); // ' van 's Gravenhage
 
-                $locationName = preg_replace('/\s+/','',$firstName.".".$city); // [voornaam].[plaats]
-                $locationId = $this->readSnipeITPartforId('locations', $locationName, '', '', 'id');
-                // kan 0 geven
+                    $locationName = preg_replace('/\s+/','',$firstName.".".$city); // [voornaam].[plaats]
+                    $locationId = $this->readSnipeITPartforId('locations', $locationName, '', '', 'id');
+                    // kan 0 geven
+                }
             }
 
             // Stap 8: zoek laatste asset tag in SnipeIT en bepaal de volgende asset tag.   

@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\AanmeldingMail;
 use App\Mail\AanmeldingMailError;
+use League\Flysystem\Filesystem;
+use League\Flysystem\WebDAV\WebDAVAdapter;
+use Sabre\DAV\Client;
 use Exception;
 
 class ProcessOpenstreetmap extends ProcessBaseJob
@@ -329,7 +332,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         //Log::info("bepaalGereserveeerd: resultaat: " . print_r($this->reviverUsers[0], true) );
     }
 
-    public function schrijfReviversCSVbestand()
+    private function schrijfReviversCSVbestand()
     {
         // Latitude is de Engelse term voor breedtegraad en longitude is de Engelse term voor lengtegraad
 
@@ -369,19 +372,21 @@ class ProcessOpenstreetmap extends ProcessBaseJob
             }
         }
 
-        Storage::disk('public')->put('LR_AlleRevivers_lijst.csv', $regels);
+        // Todo opslaan in Nextcloud via WebDav
+
+        Storage::disk('nextcloud')->put('LR_AlleRevivers_lijst.csv', $regels);
         Log::info("schrijfAlleReviversCSVbestand: aantal revivers: $tel" );
 
-        Storage::disk('public')->put('LR_FouteRevivers_lijst.csv', $uitvallers);
+        Storage::disk('nextcloud')->put('LR_FouteRevivers_lijst.csv', $uitvallers);
         Log::info("schrijfAlleReviversCSVbestand: aantal uitvallers: $uitval" );
 
-        Storage::disk('public')->put('LR_VoorraadRevivers_lijst.csv', $voorraden);
+        Storage::disk('nextcloud')->put('LR_VoorraadRevivers_lijst.csv', $voorraden);
         Log::info("schrijfAlleReviversCSVbestand: aantal met laptop: $voorraad" );
 
         // Log::info("schrijfAlleReviversCSVbestand: ".count($this->uitvallerUsers) ."uitvallers: " . print_r($this->uitvallerUsers, true) );
     }
 
-    public function schrijfAanvragersCSVbestand()
+    private function schrijfAanvragersCSVbestand()
     {
         // Latitude is de Engelse term voor breedtegraad en longitude is de Engelse term voor lengtegraad
 
@@ -413,19 +418,18 @@ class ProcessOpenstreetmap extends ProcessBaseJob
             }
         }
 
-        Storage::disk('public')->put('LR_Aanvragers_lijst.csv', $regels);
+        Storage::disk('nextcloud')->put('LR_Aanvragers_lijst.csv', $regels);
         Log::info("schrijfAanvragersCSVbestand: aantal aanvragers: $tel" );
 
-        Storage::disk('public')->put('LR_FouteAanvragers_lijst.csv', $uitvallers);
+        Storage::disk('nextcloud')->put('LR_FouteAanvragers_lijst.csv', $uitvallers);
         Log::info("schrijfAanvragersCSVbestand: aantal uitvallers: $uitval" );
 
         // Log::info("schrijfAlleReviversCSVbestand: ".count($this->uitvallerUsers) ."uitvallers: " . print_r($this->uitvallerUsers, true) );
     }
 
-
-
     public function handle(): void {
         Log::info('OpenStreetMap: job gestart '.date("Y-m-d H:i:s").'.');
+        
         $this->verzamelAlleUsers();
         Log::info('OpenStreetMap: aantal verzamelde users: ' . count($this->reviverUsers));
         Log::info('OpenStreetMap: aantal verzamelde aanvragers: ' . count($this->aanvragerUsers));
@@ -442,7 +446,7 @@ class ProcessOpenstreetmap extends ProcessBaseJob
         $this->verrijkMetGereserveerd();
         Log::info('OpenStreetMap: aantal verzamelde users na verrijkMetGereserveerd: ' . count($this->reviverUsers));
         //Log::info("'OpenStreetMap: alle users: " . print_r($this->reviverUsers, true) );
-
+        
         $this->schrijfReviversCSVbestand();
 
         $this->schrijfAanvragersCSVbestand();

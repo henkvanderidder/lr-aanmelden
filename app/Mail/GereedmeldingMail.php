@@ -23,15 +23,9 @@ class GereedmeldingMail extends Mailable
     {
         $this->laptop = $laptop;
         /**
-         * voorbeeld van $laptop:
          *   [submissionid] => 6
-         *   [manufacturer] => Bull
-         *   [productname] => DPS2000
-         *   [serialnumber] => DPS2000-1234
          *   [email] => henk.vande.ridder@solcon.nl
-         *   [naam] => Henk van de Ridder
-         *   [woonplaats] => Putten
-         *   [lrnummer] => LR00006
+         *   [lrnummer] => LR-00006
          */ 
     }
 
